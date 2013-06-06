@@ -1,6 +1,12 @@
 arduino-RTTY
 ============
 
+To use this:
+
+* Open arduino
+* Open sketch, and navigate to rtty/rtty.ino
+* Upload to Arduino.
+
 A interrupt driven, PWM audio output , RTTY modulator for the arduino. All you need is a speaker. This program produces 45 baud baudot RTTY, 170Hz spacing, the "standard" shift (mark is high tone) and two stop bits by default but *is* configurable!
 
 A low pass filter on the output of the modulator is desirable but not absolutely necessary (it will just be a marginally dirty audio signal if you don't add the filter). I'll update with a simple RC circuit in due time.

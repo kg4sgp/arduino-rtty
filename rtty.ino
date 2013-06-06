@@ -1,9 +1,11 @@
-// To be used on an arduino
-// Uses Fast PWM to produce 8kHz 8bit audio
-// Maybe in time go to 16 bit using Timer 2 but not yet...
+// Arduino RTTY Modulator
+// Uses Fast PWM to produce ~8kHz 8bit audio
 
 #include "baudot.h"
 #include "pwmsine.h"
+
+// Yeah, I really need to get rid of these globals.
+// Thats next on the to-do list
 
 char pflag = 0;
 unsigned int sampleRate = 7750;
@@ -75,14 +77,27 @@ char calcAmp(){
     sign *= -1;
   }
 
+  // return the pwm value
   return (char)(128+(sign*sine[pstn]));
 }
 
+// sets the character buffer, the current character being sent
 void setCbuff(){
     int i = 0;
-    for(i = 0; i < (sizeof(baudot_letters)/sizeof(char)); i++){
-      
+
+    // Note: the <<2)+3 is how we put the start and stop bits in
+    // the baudot table is MSB on right in the form 000xxxxx
+    // so when we shift two and add three it becomes 0xxxxx11 which is
+    // exactly the form we need for one start bit and two stop bits when read
+    // from left to right
+
+    // try to find a match of the current character in baudot
+    for(i = 0; i < (sizeof(baudot)/sizeof(char)); i++){
+
+      // look in letters
       if(msg[bytePstn] == baudot_letters[i]) {
+
+        // if coming from numbers, send shift to letters
         if(shiftToNum == 1){
           shiftToNum = 0;
           charbuf = ((baudot[31])<<2)+3;
@@ -91,7 +106,8 @@ void setCbuff(){
           charbuf = ((baudot[i])<<2)+3;
         }
       }
-      
+
+      //look in numbers
       if(msg[bytePstn] != ' ' && msg[bytePstn] != 10
 		&& msg[bytePstn] == baudot_figures[i]) {
         if(shiftToNum == 0){
@@ -103,6 +119,7 @@ void setCbuff(){
         }
       }      
       
+      // for printing the char to serial
       sym = charbuf;
       pflag = 1;
     }
@@ -110,6 +127,7 @@ void setCbuff(){
 
 void setSymb(char mve){
 
+    // if its a 1 set change to dmark other wise set change to dspace
     if((charbuf&(0x01<<mve))>>mve) {
       change = dmark;
     } else {
@@ -118,19 +136,24 @@ void setSymb(char mve){
 }
 
 // This interrupt run on every sample (7128.5 times a second)
+// though it should be every 7128.5 the sample rate had to be set differently
+// to produce the correct baud rate and frequencies (that agree with the math)
+// Why?! I'm going to figure that one out
 ISR(TIMER2_OVF_vect) {
   count++;
   if (tx == 0) return;
 
-  // if were done transmitting the last 1 or 0
-  // read the next bit and change the tone
-  // if end of the array, stop transmitting
+  // if we've played enough samples for the symbol were transmitting, get next symbol
   if (count >= sampPerSymb){
     count = 0;
     bitPstn++;
+
+    // if were at the end of the character return to the begining of a
+    // character and grab the next one
     if(bitPstn > (bits-1)) {
       bitPstn = 0;
       
+      // dont increment bytePstn if were transmitting a shift-to character
       if(justshifted != 1) {
         bytePstn++;
       } else {
@@ -138,6 +161,7 @@ ISR(TIMER2_OVF_vect) {
       }
       
       setCbuff();
+      // if were at the end of the message, return to the begining
       if (bytePstn > (msgSize-2)){
         // clear variables used here
         bitPstn = 0;
@@ -148,14 +172,19 @@ ISR(TIMER2_OVF_vect) {
     }
 
     unsigned char mve = 0;
-    // 0 or 1 to transmit?
+    // endianness thing
     if (lsbf != 1) {
-      mve = (bits-1)-bitPstn; // MSB first
+      // MSB first
+      mve = (bits-1)-bitPstn;
     } else {
-      mve = bitPstn; // LSB first
+      // LSB first
+      mve = bitPstn;
     }
+
+    // get if 0 or 1 that were transmitting
     setSymb(mve);
   }
 
+  // set PWM duty cycle
   OCR2B = calcAmp();
 }

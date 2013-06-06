@@ -1,13 +1,15 @@
-arduino-rtty
+arduino-RTTY
 ============
 
-A interrupt driven, pwm audio output , RTTY modulator for the arduino. All you need is a speaker. This program produces 45 baud baudot RTTY with 170Hz spacing with the "standard" shift (mark is high tone) by default but *is* configurable!
+A interrupt driven, PWM audio output , RTTY modulator for the arduino. All you need is a speaker. This program produces 45 baud baudot RTTY, 170Hz spacing, the "standard" shift (mark is high tone) and two stop bits by default but *is* configurable!
 
-What this offers over other modulators:
+A low pass filter on the output of the modulator is desirable but not absolutely necessary (it will just be a marginally dirty audio signal if you don't add the filter). I'll update with a simple RC circuit in due time.
+
+What this offers over other modulators that I've found on github:
 
 * The ability to do other processes (so long as you can handle them being interrupted regularly).
 * Audio output. I get good decodes by placing a small speaker from pin 3 to ground.
-* Configurability. Want to change the output frequency, or the baud rate? Go ahead!
+* Configurability. Want to change the output frequencies, or the baud rate? Go ahead!
 
 Sorry for the lack of comments right now. I'll tidy this repo up so that others can readily understand it.
 

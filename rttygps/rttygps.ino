@@ -39,7 +39,7 @@ unsigned int sampPerSymb = (unsigned int)(sampleRate/baud);
 String delim = ":";
 String nl = "\n";
 String call = "W8UPD-1";
-String nulls = "RRRRR DE ";
+String nulls = "RRRRR";
 
 void setup() {
 
@@ -179,16 +179,20 @@ int getgps(){
         }
 
       } else if (state == 8) {
-        msg = nulls;
+        msg = nl;
+	msg += nl;
+        msg += nulls;
+	msg += delim;
         msg += call;
         msg += delim;
         msg += latitude;
         msg += delim;
         msg += longitude;
         msg += delim;
+        msg += altitude
+        msg += delim;
         msg += time;
         msg += nl;
-        Serial.println(msg);
         
         return 1;
       }
@@ -282,9 +286,7 @@ void setSymb(char mve){
 void loop() {
   if(tx == 0){
     getgps();
-    Serial.println(msg);
     tx = 1;
-
   }
 }
 

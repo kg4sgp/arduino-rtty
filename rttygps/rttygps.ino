@@ -189,7 +189,7 @@ int getgps(){
         msg += delim;
         msg += longitude;
         msg += delim;
-        msg += altitude
+        msg += altitude;
         msg += delim;
         msg += time;
         msg += nl;

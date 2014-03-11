@@ -1,7 +1,7 @@
 // some lookup tables
 
 unsigned char baudot_figures[] = {
-0x00,
+'\0',
 ' ',
 '1',
 '2',
@@ -14,12 +14,12 @@ unsigned char baudot_figures[] = {
 '9',
 '0',
 '-',
-7,
+'\a',
 '$',
 '!',
 '&',
 '#',
-39,
+'\'',
 '(',
 ')',
 '"',
@@ -29,12 +29,12 @@ unsigned char baudot_figures[] = {
 '?',
 ',',
 '.',
-13, // CR
-10, // LF
+'\r', // CR
+'\n', // LF
 };
 
 unsigned char baudot_letters[] = {
-0x00,
+'/0',
 ' ',
 'Q', // 1
 'W', // 2
@@ -62,13 +62,13 @@ unsigned char baudot_letters[] = {
 'B', // ?
 'N', // ,
 'M', // .
-13, // CR
-10, // LF
+'\r', // CR
+'\n', // LF
 };
 
 
 unsigned char baudot[] = {
-0x0,
+(unsigned char)0x0,
 0x4,
 0x1d,
 0x19,

@@ -1,5 +1,4 @@
-// Arduino RTTY Modulator
-// Uses Fast PWM to produce ~8kHz 8bit audio
+// Arduino GPS Parser and RTTY Modulator
 
 #define USART_BAUDRATE 9600
 #define BAUD_PRESCALE (((F_CPU / (USART_BAUDRATE *16UL)))-1)
@@ -8,17 +7,13 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <string.h>
-#include "ita2.h"
+#include "itu2.h"
 #include "pwmsine.h"
-//#include "Arduino.h" 
-
-// Yeah, I really need to get rid of these globals.
-// Thats next on the to-do list
 
 unsigned int sampleRate = 7750;
 unsigned int tableSize = sizeof(sine)/sizeof(char);
 unsigned int pstn = 0;
-int sign = -1;
+signed int sign = -1;
 unsigned int change = 0;
 unsigned int count = 1;
 
@@ -46,7 +41,7 @@ unsigned char msgSize;
 unsigned int sampPerSymb = (unsigned int)(sampleRate/baud);
 
 char delim[] = ":";
-char nl[] = "\n\r";
+char nl[] = "\n";
 char call[] = "W8UPD";
 char nulls[] = "RRRRR";
 
@@ -86,7 +81,7 @@ char calcAmp(){
 
   // if the position rolls off, change sign and start where you left off
   if(pstn >= tableSize) {
-    pstn = pstn%tableSize;
+    pstn = pstn >> 10; // (mod 1024)
     sign *= -1;
   }
 
@@ -102,38 +97,38 @@ void setCbuff(){
     unsigned char i = 0;
 
     // Note: the <<2)+3 is how we put the start and stop bits in
-    // the ita2 table is MSB on right in the form 000xxxxx
+    // the baudot table is MSB on right in the form 000xxxxx
     // so when we shift two and add three it becomes 0xxxxx11 which is
     // exactly the form we need for one start bit and two stop bits when read
     // from left to right
 
-    // try to find a match of the current character in ita2
-    for(i = 0; i < (sizeof(ita2_letters)/sizeof(char)); i++){
+    // try to find a match of the current character in baudot
+    for(i = 0; i < (sizeof(baudot_letters)/sizeof(char)); i++){
 
       // look in letters
-      if(msg[bytePstn] == ita2_letters[i]) {
+      if(msg[bytePstn] == baudot_letters[i]) {
 
         // if coming from numbers, send shift to letters
         if(shiftToNum == 1){
           shiftToNum = 0;
           //bytePstn++;
-          charbuf = (char)(((ita2[31])<<2)+3);
+          charbuf = (char)(((baudot[31])<<2)+3);
           justshifted = 1;
         } else {
-          charbuf = (char)(((ita2[i])<<2)+3);
+          charbuf = (char)(((baudot[i])<<2)+3);
         }
       }
 
       //look in numbers
       if(msg[bytePstn] != ' ' && msg[bytePstn] != 10
-		&& msg[bytePstn] == ita2_figures[i]) {
+		&& msg[bytePstn] == baudot_figures[i]) {
         if(shiftToNum == 0){
           shiftToNum = 1;
           //bytePstn++;
-          charbuf = (char)(((ita2[30])<<2)+3);
+          charbuf = (char)(((baudot[30])<<2)+3);
           justshifted = 1;
         } else {
-          charbuf = (char)(((ita2[i])<<2)+3);
+          charbuf = (char)(((baudot[i])<<2)+3);
         }
       }      
       
@@ -156,27 +151,13 @@ void setCbuff(){
 
 void setSymb(char mve){
 
-    // if its a 1 set change to dmark other wise set change to dspace
+    // if its a 1 set change to dmark otherwise set change to dspace
     if((charbuf&(0x01<<mve))>>mve) {
       change = dmark;
     } else {
       change = dspac;
     }
 }
-
-
-/*
-char getGPS(){
-
-  if (tx == 1) return 0;
-
-  while(tx == 0) {
-
-
-
-  return 0;
-}
-*/
 
 
 
@@ -194,8 +175,6 @@ int main(void){
   TCCR2B = _BV(CS21); // Arduino at 16MHz
   TIMSK2 = _BV(TOIE2);
   
-  count = sampPerSymb;
-
   // begin serial communication
   UCSR0B = (1 << RXEN0) | (1 << TXEN0);
   UCSR0C = (1 << UCSZ00) | (1 << UCSZ01);
@@ -210,8 +189,11 @@ int main(void){
   // re-enable interrupts
   sei();
 
+  /* Does NOT Terminate! */
   for(;;) {
+    /* Idle here while interrupts take care of things */
   }
+
   return 0;
 }
 
@@ -222,7 +204,8 @@ int main(void){
 // This interrupt run on every sample (7128.5 times a second)
 // though it should be every 7128.5 the sample rate had to be set differently
 // to produce the correct baud rate and frequencies (that agree with the math)
-// Why?! I'm finisheding to figure that one out
+// Tune your device accordingly!
+
 ISR(TIMER2_OVF_vect) {
   if (tx == 0) return;
   count--;
@@ -233,7 +216,7 @@ ISR(TIMER2_OVF_vect) {
     count = sampPerSymb;
     
     // if were transmitting a stop bit make it 1.5x as long
-    if (bitPstn == (bits-1)) count += count/2;
+    if (bitPstn == (bits-1)) count += count >> 1; // div by 2
 
     // if were at the end of the character return to the begining of a
     // character and grab the next one
@@ -242,8 +225,9 @@ ISR(TIMER2_OVF_vect) {
       
       setCbuff();
       // if were at the end of the message, return to the begining
-      if (bytePstn == msgSize){
+      if (bytePstn >= msgSize){
         // clear variables used here
+        msgSize = 0;
         bitPstn = 0;
         bytePstn = 0;
         count = 1;
@@ -273,46 +257,12 @@ ISR(TIMER2_OVF_vect) {
 ISR(USART_RX_vect) {
   if (tx == 1) return;   
  
-/*
-  cbuf_end++;
-  if (cbuf_end >= cbuf_size) {
-    cbuf_em ^= 1;
-    cbuf_end = (char)(cbuf_end - cbuf_size);
-  }
-
-  if (cbuf_em != cbuf_sm) {
-    cbuf_start++;
-    if (cbuf_start >= cbuf_size) cbuf_start = (char)(cbuf_start - cbuf_size);
-  }
-
-  cbuf[cbuf_end] = UDR0;
-*/
-
-  // echo the string back
-  //char rx = UDR0;
-  //UDR0 = rx;
- 
   // move buffer down, make way for new char
   for(int i = 0; i < buflen-1; i++){
     buffer[i] = buffer[i+1];      
   }
 
   buffer[buflen-1] = UDR0;
-
-/*
-  // if underflow, no chars to read
-  if(cbuf_start != cbuf_end) {
-    return 0;
-  }
-
-  // read new char into buffer
-  buffer[buflen-1] = cbuf[cbuf_start];
-  cbuf_start++;
-  if (cbuf_start >= cbuf_size) {
-    cbuf_sm ^= 1;
-    cbuf_start = (char)(cbuf_start - cbuf_size);
-  }
-*/
 
   if(buffer[buflen-1] == ',') commas++;
 
@@ -426,7 +376,7 @@ ISR(USART_RX_vect) {
     lat_f = 0;
     lon_f = 0;
 
-    // convert lat and lon from deg decimal minutes to decimal degrees
+    // convert lat and lon from deg decimal-minutes, to decimal degrees
     lat_deg = (char)( ((latitude[0]-48)*10) + (latitude[1]-48));
     lat_f = lat_deg + ((float)atof(&latitude[2]))/60;
     lon_deg = (char)( ((longitude[0]-48)*100)+((longitude[1]-48)*10)+(longitude[2]-48) );
@@ -440,7 +390,7 @@ ISR(USART_RX_vect) {
     dtostrf(lat_f, 8, 5, latitude);
     dtostrf(lon_f, 8, 5, longitude);        
     
-    // make the message
+    // asseble the message
     strncpy(msg, nulls, maxmsg);
     strncat(msg, nl, maxmsg);
     strncat(msg, delim, maxmsg);
@@ -457,11 +407,10 @@ ISR(USART_RX_vect) {
     strncat(msg, nl, maxmsg);
     msgSize = (char)strlen(msg);
 
-
-    UDR0 = 'T';
-
+    // reset finite state machine and transmit...
+    commas = 0;
+    fsm_state = 0;
     tx = 1;
-    //return msgSize;
   }
   
   if(buffer[buflen-1] == ',') {

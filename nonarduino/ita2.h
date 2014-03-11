@@ -1,7 +1,7 @@
 // some lookup tables
 
 unsigned char ita2_figures[] = {
-'\0',
+0,
 ' ',
 '1',
 '2',
@@ -34,7 +34,7 @@ unsigned char ita2_figures[] = {
 };
 
 unsigned char ita2_letters[] = {
-'/0',
+0,
 ' ',
 'Q', // 1
 'W', // 2

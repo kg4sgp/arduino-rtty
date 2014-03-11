@@ -97,38 +97,38 @@ void setCbuff(){
     unsigned char i = 0;
 
     // Note: the <<2)+3 is how we put the start and stop bits in
-    // the baudot table is MSB on right in the form 000xxxxx
+    // the ita2 table is MSB on right in the form 000xxxxx
     // so when we shift two and add three it becomes 0xxxxx11 which is
     // exactly the form we need for one start bit and two stop bits when read
     // from left to right
 
-    // try to find a match of the current character in baudot
-    for(i = 0; i < (sizeof(baudot_letters)/sizeof(char)); i++){
+    // try to find a match of the current character in ita2
+    for(i = 0; i < (sizeof(ita2_letters)/sizeof(char)); i++){
 
       // look in letters
-      if(msg[bytePstn] == baudot_letters[i]) {
+      if(msg[bytePstn] == ita2_letters[i]) {
 
         // if coming from numbers, send shift to letters
         if(shiftToNum == 1){
           shiftToNum = 0;
           //bytePstn++;
-          charbuf = (char)(((baudot[31])<<2)+3);
+          charbuf = (char)(((ita2[31])<<2)+3);
           justshifted = 1;
         } else {
-          charbuf = (char)(((baudot[i])<<2)+3);
+          charbuf = (char)(((ita2[i])<<2)+3);
         }
       }
 
       //look in numbers
       if(msg[bytePstn] != ' ' && msg[bytePstn] != 10
-		&& msg[bytePstn] == baudot_figures[i]) {
+		&& msg[bytePstn] == ita2_figures[i]) {
         if(shiftToNum == 0){
           shiftToNum = 1;
           //bytePstn++;
-          charbuf = (char)(((baudot[30])<<2)+3);
+          charbuf = (char)(((ita2[30])<<2)+3);
           justshifted = 1;
         } else {
-          charbuf = (char)(((baudot[i])<<2)+3);
+          charbuf = (char)(((ita2[i])<<2)+3);
         }
       }      
       

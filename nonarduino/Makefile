@@ -43,7 +43,8 @@ clean:
 	rm -f *.elf *.o *.d *.eep *.hex
 
 splint:
-	splint -I/usr/avr/include *.c
+	splint /usr/avr/include/avr/iom328p.h -dump iom328p
+	splint +load iom328p -DF_CPU=16000000L -I/usr/avr/include *.c
 
 # Add all analysis tools here to run them all with one command.
 analyze:

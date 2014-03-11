@@ -41,3 +41,10 @@ link: paranoid
 
 clean:
 	rm -f *.elf *.o *.d *.eep *.hex
+
+splint:
+	splint -I/usr/avr/include *.c
+
+# Add all analysis tools here to run them all with one command.
+analyze:
+	make splint

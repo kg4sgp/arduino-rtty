@@ -7,7 +7,7 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <string.h>
-#include "itu2.h"
+#include "ita2.h"
 #include "pwmsine.h"
 
 unsigned int sampleRate = 7750;

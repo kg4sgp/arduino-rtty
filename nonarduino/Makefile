@@ -49,7 +49,7 @@ splint:
 	splint ${AVR}/include/avr/iom328p.h -dump iom328p
 	splint +load iom328p -DF_CPU=16000000L -I${AVR}/include *.c -unrecog -emptyret -unreachable
 
-upload:
+flash:
 	avrdude -p m328p -c arduino -P /dev/ttyACM0 -vvv -U flash:w:crttygps.c.hex
 
 # Add all analysis tools here to run them all with one command.

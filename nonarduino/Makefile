@@ -1,3 +1,6 @@
+ARDUINO := /usr/share/arduino
+AVR := /usr/avr
+
 paranoid: crttygps.c
 	avr-g++ -c -g -Os -Wall -pedantic -ansi -fno-exceptions -ffunction-sections -fdata-sections \
 	-Wall -Weffc++ -pedantic \
@@ -22,15 +25,15 @@ paranoid: crttygps.c
 	-Wunused-value -Wunused-variable -Wvariadic-macros \
 	-Wvolatile-register-var -Wwrite-strings \
 	-mmcu=atmega328p -DF_CPU=16000000L -MMD -DUSB_VID=null -DUSB_PID=null -DARDUINO=105 \
-	-I/usr/share/arduino/hardware/arduino/cores/arduino \
-	-I/usr/share/arduino/hardware/arduino/variants/standard \
+	-I${ARDUINO}/hardware/arduino/cores/arduino \
+	-I${ARDUINO}/hardware/arduino/variants/standard \
 	crttygps.c -o crttygps.c.o
 
 pedantic: crttygps.c
 	avr-g++ -c -g -Os -Wall -pedantic -ansi -fno-exceptions -ffunction-sections -fdata-sections \
 	-mmcu=atmega328p -DF_CPU=16000000L -MMD -DUSB_VID=null -DUSB_PID=null -DARDUINO=105 \
-	-I/usr/share/arduino/hardware/arduino/cores/arduino \
-	-I/usr/share/arduino/hardware/arduino/variants/standard \
+	-I${ARDUINO}/hardware/arduino/cores/arduino \
+	-I${ARDUINO}/hardware/arduino/variants/standard \
 	crttygps.c -o crttygps.c.o
 
 link: paranoid
@@ -43,8 +46,8 @@ clean:
 	rm -f *.elf *.o *.d *.eep *.hex
 
 splint:
-	splint /usr/avr/include/avr/iom328p.h -dump iom328p
-	splint +load iom328p -DF_CPU=16000000L -I/usr/avr/include *.c
+	splint ${AVR}/include/avr/iom328p.h -dump iom328p
+	splint +load iom328p -DF_CPU=16000000L -I${AVR}/include *.c
 
 # Add all analysis tools here to run them all with one command.
 analyze:

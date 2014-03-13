@@ -10,65 +10,65 @@
 #include "ita2.h"
 #include "pwmsine.h"
 
-unsigned int sampleRate = 7750;
-unsigned int tableSize = (unsigned int)(sizeof(sine)/sizeof(char));
-unsigned int pstn = 0;
-signed char sign = (signed char)-1;
-unsigned int change = 0;
-unsigned int count = 1;
+static unsigned int sampleRate = 7750;
+static unsigned int tableSize = (unsigned int)(sizeof(sine)/sizeof(char));
+static unsigned int pstn = 0;
+static signed char sign = (signed char)-1;
+static unsigned int change = 0;
+static unsigned int count = 1;
 
-int fmark = 870;
-int fspac = 700;
-int baud = 45;
-int bits = 8;
-char lsbf = (char)0;
+static int fmark = 870;
+static int fspac = 700;
+static int baud = 45;
+static int bits = 8;
+static char lsbf = (char)0;
 
-const unsigned char maxmsg = (unsigned char)128;
-char msg[maxmsg] = "";
+static const unsigned char maxmsg = (unsigned char)128;
+static char msg[maxmsg] = "";
 
-unsigned char bitPstn = (unsigned char)0;
-unsigned int bytePstn = (unsigned char)0;
-unsigned char tx = (unsigned char)0;
+static unsigned char bitPstn = (unsigned char)0;
+static unsigned int bytePstn = (unsigned char)0;
+static unsigned char tx = (unsigned char)0;
 
-unsigned char charbuf = (unsigned char)0;
-unsigned char shiftToNum = (unsigned char)0;
-unsigned char justshifted = (unsigned char)0;
+static unsigned char charbuf = (unsigned char)0;
+static unsigned char shiftToNum = (unsigned char)0;
+static unsigned char justshifted = (unsigned char)0;
 
 // compute values for tones.
-unsigned int dmark = (unsigned int)((2*(long)tableSize*(long)fmark)/((long)sampleRate));
-unsigned int dspac = (unsigned int)((2*(long)tableSize*(long)fspac)/((long)sampleRate));
-unsigned char msgSize;
-unsigned int sampPerSymb = (unsigned int)(sampleRate/baud);
+static unsigned int dmark = (unsigned int)((2*(long)tableSize*(long)fmark)/((long)sampleRate));
+static unsigned int dspac = (unsigned int)((2*(long)tableSize*(long)fspac)/((long)sampleRate));
+static unsigned char msgSize;
+static unsigned int sampPerSymb = (unsigned int)(sampleRate/baud);
 
-char delim[] = ":";
-char nl[] = "\n";
-char call[] = "W8UPD";
-char nulls[] = "RRRRR";
+static char delim[] = ":";
+static char nl[] = "\n";
+static char call[] = "W8UPD";
+static char nulls[] = "RRRRR";
 
-char lat_deg = (char)0;
-char lon_deg = (char)0;
-float lat_f = 0;
-float lon_f = 0;
+static char lat_deg = (char)0;
+static char lon_deg = (char)0;
+static float lat_f = 0;
+static float lon_f = 0;
 
 // GPS Data
-const char buflen = (char)16;
-char utc_time[buflen] = "";
-char longitude[buflen] = "";
-char NS[1] = "";
-char latitude[buflen] = "";
-char EW[1] = "";
-char altitude[buflen] = "";
-char alt_units[1] = "";
-char strbuf[2] = "";
+static const char buflen = (char)16;
+static char utc_time[buflen] = "";
+static char longitude[buflen] = "";
+static char NS[1] = "";
+static char latitude[buflen] = "";
+static char EW[1] = "";
+static char altitude[buflen] = "";
+static char alt_units[1] = "";
+static char strbuf[2] = "";
 
 // intialize Finite fsm_state Machine
-char buffer[buflen] = { (char)0 }; 
-char fsm_state = (char)0;
-char commas = (char)0;
-char lastcomma = (char)0;
+static char buffer[buflen] = { (char)0 }; 
+static char fsm_state = (char)0;
+static char commas = (char)0;
+static char lastcomma = (char)0;
 
 
-char calcAmp(){
+static char calcAmp(){
   pstn += change;
 
   // if the position rolls off, change sign and start where you left off
@@ -85,7 +85,7 @@ char calcAmp(){
 
 
 // sets the character buffer, the current character being sent
-void setCbuff(){
+static void setCbuff(){
     unsigned int i = 0;
 
     // Note: the <<2)+3 is how we put the start and stop bits in
@@ -141,7 +141,7 @@ void setCbuff(){
 
 
 
-void setSymb(unsigned char hmve){
+static void setSymb(unsigned char hmve){
 
     // if its a 1 set change to dmark otherwise set change to dspace
     if( (bool) ( ( (unsigned char)charbuf & ( 0x01<<hmve ) ) >> hmve ) ) {
@@ -185,9 +185,6 @@ int main(void){
   for(;;) {
     /* Idle here while interrupts take care of things */
   }
-
-  /*@ notreached @*/
-  return 0;
 }
 
 
@@ -199,7 +196,8 @@ int main(void){
 // to produce the correct baud rate and frequencies (that agree with the math)
 // Tune your device accordingly!
 
-ISR(TIMER2_OVF_vect) {
+/*@ -emptyret @*/
+ISR(/*@ unused @*/ TIMER2_OVF_vect) {
   unsigned char hmve = (unsigned char)0;
 
   if (tx == (unsigned char)0) return;
@@ -232,9 +230,9 @@ ISR(TIMER2_OVF_vect) {
     }
 
     // endianness thing
-    if (lsbf != 1) {
+    if (lsbf != (char)1) {
       // MSB first
-      hmve = (char)((bits-1)-bitPstn);
+      hmve = (unsigned char)((bits-1)-(int)bitPstn);
     } else {
       // LSB first
       hmve = bitPstn;
@@ -246,173 +244,177 @@ ISR(TIMER2_OVF_vect) {
 
   // set PWM duty cycle
   OCR2B = calcAmp();
+  return;
 }
 
-ISR(USART_RX_vect) {
+/*@ -redef @*/
+ISR(/*@ unused @*/ USART_RX_vect) {
   int i;
-  if (tx == (char)1) return;   
+  if (tx == (unsigned char)1) return;
  
   // move buffer down, make way for new char
-  for(i = 0; i < buflen-1; i++){
+  for(i = 0; i < (int)buflen-1; i++){
     buffer[i] = buffer[i+1];      
   }
 
-  buffer[buflen-1] = UDR0;
+  buffer[(int)buflen-1] = UDR0;
 
-  if(buffer[buflen-1] == ',') commas++;
+  if(buffer[(int)buflen-1] == ',') commas = (char)(commas + (char)1);
 
   // reset FSM on new data frame
-  if(buffer[buflen-1] == '$') {
-    commas = 0;
-    fsm_state = 0;
+  if(buffer[(int)buflen-1] == '$') {
+    commas = (char)0;
+    fsm_state = (char)0;
   }
 
   // Finite fsm_state Machine
   //UDR0 = fsm_state+48;
   if (fsm_state == (char)0) {
 
-    if (buffer[buflen-6] == '$' &&
-        buffer[buflen-5] == 'G' &&
-        buffer[buflen-4] == 'P' &&
-        buffer[buflen-3] == 'G' &&
-        buffer[buflen-2] == 'G' &&
-        buffer[buflen-1] == 'A'){
-      fsm_state = 1;
+    if (buffer[(int)buflen-6] == '$' &&
+        buffer[(int)buflen-5] == 'G' &&
+        buffer[(int)buflen-4] == 'P' &&
+        buffer[(int)buflen-3] == 'G' &&
+        buffer[(int)buflen-2] == 'G' &&
+        buffer[(int)buflen-1] == 'A'){
+      fsm_state = (char)1;
     }
 
   } else if (fsm_state == (char)1) {
 
     // Grab time info
     // If this is the second comma in the last element of the buffer array
-    if (buffer[buflen-1] == ',' && commas == 2){
-      unsigned char j;
+    if (buffer[(int)buflen-1] == ',' && commas == (char)2){
+      int j;
       utc_time[0] = '\0';
-      for (j = lastcomma; j < buflen-1; j++) {
+      for (j = (int)lastcomma; j < (int)buflen-1; j++) {
 
         strbuf[0] = buffer[j];
-        strncat(utc_time, strbuf, (buflen-1)-j);
+        strncat(utc_time, strbuf, (size_t)((int)buflen-1)-j);
       }
 
       //next fsm_state
-      fsm_state = 2;
+      fsm_state = (char)2;
     }
 
   } else if (fsm_state == (char)2) { 
 
     // Grab latitude
 
-    if (buffer[buflen-1] == ',' && commas == 3){
-      unsigned char j;
+    if (buffer[(int)buflen-1] == ',' && commas == (char)3){
+      int j;
       latitude[0] = '\0';
-      for (j = lastcomma; j < buflen-1; j++) {
+      for (j = (int)lastcomma; j < (int)buflen-1; j++) {
         strbuf[0] = buffer[j];
-        strncat(latitude, strbuf, (buflen-1)-j);
+        strncat(latitude, strbuf, (size_t)((int)buflen-1)-j);
       }
 
-      fsm_state = 3;
+      fsm_state = (char)3;
     }
 
   } else if (fsm_state == (char)3) {
 
     // Grab N or S reading
-    if (buffer[buflen-1] == ',' && commas == 4){
-      strncpy(NS, &buffer[buflen-2], 1);
-      fsm_state = 4;
+    if (buffer[(int)buflen-1] == ',' && commas == (char)4){
+      strncpy(NS, &buffer[(int)buflen-2], 1);
+      fsm_state = (char)4;
     }
 
   } else if (fsm_state == (char)4) {
 
     // Grab longitude
-    if (buffer[buflen-1] == ',' && commas == 5){
-      unsigned char j;
+    if (buffer[(int)buflen-1] == ',' && commas == (char)5){
+      int j;
       longitude[0] = '\0';
-      for (j = lastcomma; j < buflen-1; j++) {
+      for (j = (int)lastcomma; j < (int)buflen-1; j++) {
         strbuf[0] = buffer[j];
-        strncat(longitude, strbuf, (buflen-1)-j);
+        strncat(longitude, strbuf, (size_t)((int)buflen-1)-j);
       }
 
-      fsm_state = 5;
+      fsm_state = (char)5;
     }
 
   } else if (fsm_state == (char)5) {
 
     // Grab E or W reading
-    if (buffer[buflen-1] == ',' && commas == 6){
-      strncpy(EW, &buffer[buflen-2], 1);
-      fsm_state = 6;
+    if (buffer[(int)buflen-1] == ',' && commas == (char)6){
+      strncpy(EW, &buffer[(int)buflen-2], 1);
+      fsm_state = (char)6;
     }
 
   } else if (fsm_state == (char)6) {
 
     // Grab altitude
-    if (buffer[buflen-1] == ',' && commas == 10){
-      unsigned char j;
+    if (buffer[(int)buflen-1] == ',' && commas == (char)10){
+      int j;
       altitude[0] = '\0';
-      for (j = lastcomma; j < buflen-1; j++) {
+      for (j = (int)lastcomma; j < (int)buflen-1; j++) {
         strbuf[0] = buffer[j];
-        strncat(altitude, strbuf, (buflen-1)-j);
+        strncat(altitude, strbuf, (size_t)((int)buflen-1)-j);
       }
 
-      fsm_state = 7;
+      fsm_state = (char)7;
     }
 
   } else if (fsm_state == (char)7) {
 
     // Grab altitude units
-    if (buffer[buflen-1] == ',' && commas == 11){
-      strncpy(alt_units, &buffer[buflen-2], 1);
-      fsm_state = 8;
+    if (buffer[(int)buflen-1] == ',' && commas == (char)11){
+      strncpy(alt_units, &buffer[(int)buflen-2], 1);
+      fsm_state = (char)8;
     }
 
   } else if (fsm_state == (char)8) {
     
     // clear lat and lon
-    lat_deg = 0;
-    lon_deg = 0;
-    lat_f = 0;
-    lon_f = 0;
+    lat_deg = (char)0;
+    lon_deg = (char)0;
+    lat_f = (char)0;
+    lon_f = (char)0;
 
     // convert lat and lon from deg decimal-minutes, to decimal degrees
-    lat_deg = (char)( ((latitude[0]-48)*10) + (latitude[1]-48));
-    lat_f = lat_deg + ((float)atof(&latitude[2]))/60;
-    lon_deg = (char)( ((longitude[0]-48)*100)+((longitude[1]-48)*10)+(longitude[2]-48) );
-    lon_f = lon_deg + ((float)atof(&longitude[3]))/60;
+    lat_deg = (char)( ((latitude[0]-(char)48)*(char)10) + (latitude[1]-(char)48));
+    lat_f = (float)lat_deg + ((float)atof(&latitude[2]))/60;
+    lon_deg = (char)( ((longitude[0]-(char)48)*(char)100)+((longitude[1]-(char)48)*(char)10)+(longitude[2]-(char)48) );
+    lon_f = (float)lon_deg + ((float)atof(&longitude[3]))/60;
 
     // make negative if needed
     if (NS[0] == 'S') lat_f = -lat_f;     
     if (EW[0] == 'W') lon_f = -lon_f;   
     
     // convert back to strings
+    /*@ -unrecog @*/
     dtostrf(lat_f, 8, 5, latitude);
     dtostrf(lon_f, 8, 5, longitude);        
     
-    // asseble the message
-    strncpy(msg, nulls, maxmsg);
-    strncat(msg, nl, maxmsg);
-    strncat(msg, delim, maxmsg);
-    strncat(msg, call, maxmsg);
-    strncat(msg, delim, maxmsg);
-    strncat(msg, latitude, maxmsg);
-    strncat(msg, delim, maxmsg);
-    strncat(msg, longitude, maxmsg);
-    strncat(msg, delim, maxmsg);
-    strncat(msg, altitude, maxmsg);
-    strncat(msg, delim, maxmsg);
-    strncat(msg, utc_time, 6);
-    strncat(msg, nl, maxmsg);
-    strncat(msg, nl, maxmsg);
-    msgSize = (char)strlen(msg);
+    // assemble the message
+    strncpy(msg, nulls,     (size_t)maxmsg);
+    strncat(msg, nl,        (size_t)maxmsg);
+    strncat(msg, delim,     (size_t)maxmsg);
+    strncat(msg, call,      (size_t)maxmsg);
+    strncat(msg, delim,     (size_t)maxmsg);
+    strncat(msg, latitude,  (size_t)maxmsg);
+    strncat(msg, delim,     (size_t)maxmsg);
+    strncat(msg, longitude, (size_t)maxmsg);
+    strncat(msg, delim,     (size_t)maxmsg);
+    strncat(msg, altitude,  (size_t)maxmsg);
+    strncat(msg, delim,     (size_t)maxmsg);
+    strncat(msg, utc_time,  (size_t)6);
+    strncat(msg, nl,        (size_t)maxmsg);
+    strncat(msg, nl,        (size_t)maxmsg);
+    msgSize = (unsigned char)strlen(msg);
 
     // reset finite state machine and transmit...
-    commas = 0;
-    fsm_state = 0;
-    tx = 1;
+    commas = (char)0;
+    fsm_state = (char)0;
+    tx = (unsigned char)1;
   }
   
-  if(buffer[buflen-1] == ',') {
-    lastcomma = buflen-1;
+  if(buffer[(int)buflen-1] == ',') {
+    lastcomma = (char)((int)buflen-1);
   } else {
-    lastcomma--;
+    lastcomma = (char)(lastcomma - (char)1);
   }
 
+  return;
 }

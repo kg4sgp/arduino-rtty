@@ -11,7 +11,7 @@
 #include "pwmsine.h"
 
 static unsigned int sampleRate = 7750;
-static unsigned int tableSize = (unsigned int)(sizeof(sine)/sizeof(char));
+static unsigned int tableSize = 1024; /* (unsigned int)(sizeof(sine)/sizeof(char)); */
 static unsigned int pstn = 0;
 static signed char sign = (signed char)-1;
 static unsigned int change = 0;
@@ -24,7 +24,7 @@ static unsigned int bits = 8;
 static unsigned char lsbf = (unsigned char)0;
 
 static const unsigned char maxmsg = (unsigned char)128;
-static char msg[maxmsg] = "";
+static char msg[128] = "";
 
 static unsigned char bitPstn = (unsigned char)0;
 static unsigned int bytePstn = (unsigned char)0;
@@ -35,10 +35,14 @@ static unsigned char shiftToNum = (unsigned char)0;
 static unsigned char justshifted = (unsigned char)0;
 
 /* Compute values for tones. */
-static unsigned int dmark = (unsigned int)((2*(long)tableSize*(long)fmark)/((long)sampleRate));
-static unsigned int dspac = (unsigned int)((2*(long)tableSize*(long)fspac)/((long)sampleRate));
-static unsigned char msgSize;
-static unsigned int sampPerSymb = (unsigned int)(sampleRate/baud);
+/*
+ * static unsigned int dmark = (unsigned int)((2*(long)tableSize*(long)fmark)/((long)sampleRate));
+ * static unsigned int dspac = (unsigned int)((2*(long)tableSize*(long)fspac)/((long)sampleRate));
+ */
+static unsigned int dmark = (unsigned int)0;
+static unsigned int dspac = (unsigned int)0;
+static unsigned char msgSize = (unsigned char)0;
+static unsigned int sampPerSymb = (unsigned int)0; /*(unsigned int)(sampleRate/baud);*/
 
 static char delim[] = ":";
 static char nl[] = "\n";
@@ -52,23 +56,31 @@ static float lon_f = 0;
 
 /* GPS Data */
 static const char buflen = (char)16;
-static char utc_time[buflen] = "";
-static char longitude[buflen] = "";
+static char utc_time[16] = "";
+static char longitude[16] = "";
 static char NS[1] = "";
-static char latitude[buflen] = "";
+static char latitude[16] = "";
 static char EW[1] = "";
-static char altitude[buflen] = "";
+static char altitude[16] = "";
 static char alt_units[1] = "";
 static char strbuf[2] = "";
 
 /* Intialize Finite fsm_state Machine */
-static char buffer[buflen] = { (char)0 }; 
+static char buffer[16]; 
 static char fsm_state = (char)0;
 static char commas = (char)0;
 static char lastcomma = (char)0;
 
+static void init()
+{
+  dmark = (unsigned int)((2*(long)tableSize*(long)fmark)/((long)sampleRate));
+  dspac = (unsigned int)((2*(long)tableSize*(long)fspac)/((long)sampleRate));
+  tableSize = (unsigned int)(sizeof(sine)/sizeof(char)); 
+  sampPerSymb = (unsigned int)(sampleRate/baud);
+}
 
-static unsigned char calcAmp(){
+static unsigned char calcAmp()
+{
   pstn += change;
 
   /* if the position rolls off, change sign and start where you left off */
@@ -85,7 +97,8 @@ static unsigned char calcAmp(){
 
 
 /* sets the character buffer, the current character being sent */
-static void setCbuff(){
+static void setCbuff()
+{
     unsigned int i = 0;
 
     /*  Note: the <<2)+3 is how we put the start and stop bits in
@@ -129,7 +142,7 @@ static void setCbuff(){
   /* dont increment bytePstn if were transmitting a shift-to character */
   if(justshifted != (unsigned char)1) {
     /* print letter you're transmitting */
-    UDR0 = msg[bytePstn];
+    UDR0 = (unsigned char)msg[bytePstn];
     bytePstn++;
   } else {
     justshifted = (unsigned char)0;
@@ -139,7 +152,8 @@ static void setCbuff(){
 
 
 
-static void setSymb(unsigned char hmve){
+static void setSymb(unsigned char hmve)
+{
 
     /* if its a 1 set change to dmark otherwise set change to dspace */
     if( ( ( (unsigned char)charbuf & ( 0x01<<hmve ) ) >> hmve ) == (unsigned char)1 ) {
@@ -151,9 +165,11 @@ static void setSymb(unsigned char hmve){
 
 
 
-int main(void){
+int main(void)
+{
 
   /* set things up */
+  init();
 
   /* setup pins for output */
   DDRD |= _BV(3);
@@ -284,7 +300,7 @@ ISR(/*@ unused @*/ USART_RX_vect) {
       for (j = (int)lastcomma; j < (int)buflen-1; j++) {
 
         strbuf[0] = buffer[j];
-        strncat(utc_time, strbuf, (size_t)((unsigned int)buflen-(unsigned int)1)-j);
+        strncat(utc_time, strbuf, (size_t)(buflen-(char)1)-(unsigned int)j);
       }
 
       /* next fsm_state */
@@ -300,7 +316,7 @@ ISR(/*@ unused @*/ USART_RX_vect) {
       latitude[0] = '\0';
       for (j = (int)lastcomma; j < (int)buflen-1; j++) {
         strbuf[0] = buffer[j];
-        strncat(latitude, strbuf, (size_t)((int)buflen-1)-j);
+        strncat(latitude, strbuf, (size_t)(buflen-(char)1)-(unsigned int)j);
       }
 
       fsm_state = (char)3;
@@ -322,7 +338,7 @@ ISR(/*@ unused @*/ USART_RX_vect) {
       longitude[0] = '\0';
       for (j = (int)lastcomma; j < (int)buflen-1; j++) {
         strbuf[0] = buffer[j];
-        strncat(longitude, strbuf, (size_t)((int)buflen-1)-j);
+        strncat(longitude, strbuf, (size_t)(buflen-(char)1)-(unsigned int)j);
       }
 
       fsm_state = (char)5;
@@ -344,7 +360,7 @@ ISR(/*@ unused @*/ USART_RX_vect) {
       altitude[0] = '\0';
       for (j = (int)lastcomma; j < (int)buflen-1; j++) {
         strbuf[0] = buffer[j];
-        strncat(altitude, strbuf, (size_t)((int)buflen-1)-j);
+        strncat(altitude, strbuf, (size_t)(buflen-(char)1)-(unsigned int)j);
       }
 
       fsm_state = (char)7;

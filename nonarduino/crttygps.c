@@ -186,6 +186,7 @@ int main(void){
     /* Idle here while interrupts take care of things */
   }
 
+  /*@ notreached @*/
   return 0;
 }
 
@@ -199,6 +200,8 @@ int main(void){
 // Tune your device accordingly!
 
 ISR(TIMER2_OVF_vect) {
+  unsigned char hmve = (unsigned char)0;
+
   if (tx == (unsigned char)0) return;
   count--;
 
@@ -228,7 +231,6 @@ ISR(TIMER2_OVF_vect) {
       }
     }
 
-    unsigned char hmve = (unsigned char)0;
     // endianness thing
     if (lsbf != 1) {
       // MSB first
@@ -247,10 +249,11 @@ ISR(TIMER2_OVF_vect) {
 }
 
 ISR(USART_RX_vect) {
+  int i;
   if (tx == (char)1) return;   
  
   // move buffer down, make way for new char
-  for(int i = 0; i < buflen-1; i++){
+  for(i = 0; i < buflen-1; i++){
     buffer[i] = buffer[i+1];      
   }
 
@@ -282,12 +285,12 @@ ISR(USART_RX_vect) {
     // Grab time info
     // If this is the second comma in the last element of the buffer array
     if (buffer[buflen-1] == ',' && commas == 2){
-
+      unsigned char j;
       utc_time[0] = '\0';
-      for (unsigned char i = lastcomma; i < buflen-1; i++) {
+      for (j = lastcomma; j < buflen-1; j++) {
 
-        strbuf[0] = buffer[i];
-        strncat(utc_time, strbuf, (buflen-1)-i);
+        strbuf[0] = buffer[j];
+        strncat(utc_time, strbuf, (buflen-1)-j);
       }
 
       //next fsm_state
@@ -299,10 +302,11 @@ ISR(USART_RX_vect) {
     // Grab latitude
 
     if (buffer[buflen-1] == ',' && commas == 3){
+      unsigned char j;
       latitude[0] = '\0';
-      for (unsigned char i = lastcomma; i < buflen-1; i++) {
-        strbuf[0] = buffer[i];
-        strncat(latitude, strbuf, (buflen-1)-i);
+      for (j = lastcomma; j < buflen-1; j++) {
+        strbuf[0] = buffer[j];
+        strncat(latitude, strbuf, (buflen-1)-j);
       }
 
       fsm_state = 3;
@@ -320,11 +324,11 @@ ISR(USART_RX_vect) {
 
     // Grab longitude
     if (buffer[buflen-1] == ',' && commas == 5){
-
+      unsigned char j;
       longitude[0] = '\0';
-      for (unsigned char i = lastcomma; i < buflen-1; i++) {
-        strbuf[0] = buffer[i];
-        strncat(longitude, strbuf, (buflen-1)-i);
+      for (j = lastcomma; j < buflen-1; j++) {
+        strbuf[0] = buffer[j];
+        strncat(longitude, strbuf, (buflen-1)-j);
       }
 
       fsm_state = 5;
@@ -342,11 +346,11 @@ ISR(USART_RX_vect) {
 
     // Grab altitude
     if (buffer[buflen-1] == ',' && commas == 10){
-
+      unsigned char j;
       altitude[0] = '\0';
-      for (unsigned char i = lastcomma; i < buflen-1; i++) {
-        strbuf[0] = buffer[i];
-        strncat(altitude, strbuf, (buflen-1)-i);
+      for (j = lastcomma; j < buflen-1; j++) {
+        strbuf[0] = buffer[j];
+        strncat(altitude, strbuf, (buflen-1)-j);
       }
 
       fsm_state = 7;

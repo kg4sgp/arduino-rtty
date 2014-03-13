@@ -247,7 +247,6 @@ ISR(/*@ unused @*/ TIMER2_OVF_vect) {
   return;
 }
 
-/*@ -redef @*/
 ISR(/*@ unused @*/ USART_RX_vect) {
   int i;
   if (tx == (unsigned char)1) return;
@@ -383,7 +382,6 @@ ISR(/*@ unused @*/ USART_RX_vect) {
     if (EW[0] == 'W') lon_f = -lon_f;   
     
     // convert back to strings
-    /*@ -unrecog @*/
     dtostrf(lat_f, 8, 5, latitude);
     dtostrf(lon_f, 8, 5, longitude);        
     

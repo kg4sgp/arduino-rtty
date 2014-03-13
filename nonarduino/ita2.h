@@ -1,4 +1,4 @@
-// some lookup tables
+/* some lookup tables */
 
 unsigned char ita2_figures[] = {
   '\0',
@@ -14,7 +14,7 @@ unsigned char ita2_figures[] = {
   '9',
   '0',
   '-',
-  '\a',
+  (unsigned char)0x07,
   '$',
   '!',
   '&',
@@ -29,41 +29,41 @@ unsigned char ita2_figures[] = {
   '?',
   ',',
   '.',
-  '\r', // CR
-  '\n', // LF
+  '\r', 
+  '\n', 
 };
 
 unsigned char ita2_letters[] = {
   '\0',
   ' ',
-  'Q', // 1
-  'W', // 2
-  'E', // 3
-  'R', // 4
-  'T', // 5
-  'Y', // 6
-  'U', // 7
-  'I', // 8
-  'O', // 9
-  'P', // 0
-  'A', // -
-  'S', // BELL
-  'D', // $
-  'F', // !
-  'G', // &
-  'H', // #
-  'J', // '
-  'K', // (
-  'L', // )
-  'Z', // "
-  'X', // /
-  'C', // :
-  'V', // ;
-  'B', // ?
-  'N', // ,
-  'M', // .
-  '\r', // CR
-  '\n', // LF
+  'Q', 
+  'W', 
+  'E', 
+  'R', 
+  'T', 
+  'Y', 
+  'U', 
+  'I', 
+  'O', 
+  'P', 
+  'A', 
+  'S', 
+  'D', 
+  'F', 
+  'G', 
+  'H', 
+  'J', 
+  'K', 
+  'L', 
+  'Z', 
+  'X', 
+  'C', 
+  'V', 
+  'B', 
+  'N', 
+  'M', 
+  '\r',
+  '\n',
 };
 
 

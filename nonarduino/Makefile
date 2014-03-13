@@ -2,8 +2,10 @@ ARDUINO := /usr/share/arduino
 AVR := /usr/avr
 
 paranoid: crttygps.c
-	avr-g++ -c -g -Os -Wall -pedantic -ansi -fno-exceptions -ffunction-sections -fdata-sections \
-	-Wall -Weffc++ -pedantic \
+	avr-gcc -c -g -Os -Wall -pedantic -ansi -fno-exceptions -ffunction-sections -fdata-sections \
+	-std=iso9899:1999 \
+	-Wall -pedantic \
+  -Wmissing-prototypes \
 	-pedantic-errors -Wextra -Wall -Waggregate-return -Wcast-align \
 	-Wcast-qual -Wchar-subscripts -Wcomment -Wconversion \
 	-Wdisabled-optimization \

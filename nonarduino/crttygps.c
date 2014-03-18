@@ -219,8 +219,8 @@ ISR(/*@ unused @*/ TIMER2_OVF_vect) {
     bitPstn = (unsigned char)(bitPstn+(unsigned char)1);
     count = sampPerSymb;
     
-    /* if were transmitting a stop bit make it 1.5x as long */
-    if (bitPstn == (unsigned char)(bits-1)) count += count >> 1; /* div by 2 */
+    /* if were transmitting the last stop bit make it 0.5x as long (1.5 stop bits) */
+    if (bitPstn == (unsigned char)(bits-1)) count = count >> 1; /* div by 2 */
 
     /* if were at the end of the character return to the begining of a
      * character and grab the next one */

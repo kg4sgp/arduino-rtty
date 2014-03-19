@@ -10,7 +10,7 @@
 #include "ita2.h"
 #include "pwmsine.h"
 
-static unsigned int sampleRate = 7750;
+static unsigned int sampleRate = 60000; /*62500; */
 static unsigned int tableSize = 1024; /* (unsigned int)(sizeof(sine)/sizeof(char)); */
 static unsigned int pstn = 0;
 static signed char sign = (signed char)-1;
@@ -176,8 +176,8 @@ int main(void)
 
   /* setup counter 2 for fast PWM output on pin 3 (arduino) */
   TCCR2A = _BV(COM2B1) | _BV(WGM21) | _BV(WGM20);
-  /* TCCR2B = _BV(CS20); */ /* TinyDuino at 8MHz */
-  TCCR2B = _BV(CS21); /* Arduino at 16MHz */
+  TCCR2B = _BV(CS20);  /* TinyDuino at 8MHz */
+  /*TCCR2B = _BV(CS21); */ /* Arduino at 16MHz */
   TIMSK2 = _BV(TOIE2);
   
   /* begin serial communication */
@@ -261,6 +261,7 @@ ISR(/*@ unused @*/ TIMER2_OVF_vect) {
 
 ISR(/*@ unused @*/ USART_RX_vect) {
   int i;
+
   if (tx == (unsigned char)1) return;
  
   /* move buffer down, make way for new char */
@@ -268,7 +269,7 @@ ISR(/*@ unused @*/ USART_RX_vect) {
     buffer[i] = buffer[i+1];      
   }
 
-  buffer[(int)buflen-1] = UDR0;
+  buffer[(int)buflen-1] = (char)UDR0;
 
   if(buffer[(int)buflen-1] == ',') commas = (char)(commas + (char)1);
 

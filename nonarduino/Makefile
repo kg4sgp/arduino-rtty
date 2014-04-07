@@ -52,7 +52,7 @@ splint:
 	splint +load iom328p -DF_CPU=16000000L -I${AVR}/include *.c
 
 flash:
-	avrdude -p m328p -c arduino -P /dev/ttyACM0 -vvv -U flash:w:crttygps.c.hex
+	avrdude -p m328p -c arduino -P /dev/ttyUSB0 -vvv -b 57600 -D -U flash:w:crttygps.c.hex
 
 # Add all analysis tools here to run them all with one command.
 analyze:

@@ -47,7 +47,7 @@ static unsigned int sampPerSymb = (unsigned int)0; /*(unsigned int)(sampleRate/b
 static char delim[] = ":";
 static char nl[] = "\n";
 static char call[] = "W8UPD";
-static char nulls[] = "RRRRR";
+static char nulls[] = "R1R1R1R1";
 
 static char lat_deg = (char)0;
 static char lon_deg = (char)0;

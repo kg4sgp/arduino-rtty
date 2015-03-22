@@ -5,7 +5,7 @@ paranoid: crttygps.c
 	avr-gcc -c -g -Os -Wall -pedantic -ansi -fno-exceptions -ffunction-sections -fdata-sections \
 	-std=iso9899:1999 \
 	-Wall -pedantic \
-  -Wmissing-prototypes \
+	-Wmissing-prototypes \
 	-pedantic-errors -Wextra -Wall -Waggregate-return -Wcast-align \
 	-Wcast-qual -Wchar-subscripts -Wcomment -Wconversion \
 	-Wdisabled-optimization \

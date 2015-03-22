@@ -3,12 +3,14 @@
 #define USART_BAUDRATE 9600
 #define BAUD_PRESCALE (((F_CPU / (USART_BAUDRATE *16UL)))-1)
 
-#include <stdlib.h>
-#include <avr/io.h>
 #include <avr/interrupt.h>
+#include <avr/io.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "ita2.h"
 #include "pwmsine.h"
+#include "crc/crc16.h"
 
 static unsigned int sampleRate = 60000; /*62500; */
 static unsigned int tableSize = 1024; /* (unsigned int)(sizeof(sine)/sizeof(char)); */
@@ -66,7 +68,7 @@ static char alt_units[1] = "";
 static char strbuf[2] = "";
 
 /* Intialize Finite fsm_state Machine */
-static char buffer[16]; 
+static char buffer[16];
 static char fsm_state = (char)0;
 static char commas = (char)0;
 static char lastcomma = (char)0;
@@ -75,7 +77,7 @@ static void init()
 {
   dmark = (unsigned int)((2*(long)tableSize*(long)fmark)/((long)sampleRate));
   dspac = (unsigned int)((2*(long)tableSize*(long)fspac)/((long)sampleRate));
-  tableSize = (unsigned int)(sizeof(sine)/sizeof(char)); 
+  tableSize = (unsigned int)(sizeof(sine)/sizeof(char));
   sampPerSymb = (unsigned int)(sampleRate/baud);
 }
 
@@ -134,11 +136,11 @@ static void setCbuff()
         } else {
           charbuf = (unsigned char)(((ita2[i])<<2)+(unsigned char)3);
         }
-      }      
-      
+      }
+
 
     }
-    
+
   /* dont increment bytePstn if were transmitting a shift-to character */
   if(justshifted != (unsigned char)1) {
     /* print letter you're transmitting */
@@ -179,7 +181,7 @@ int main(void)
   TCCR2B = _BV(CS20);  /* TinyDuino at 8MHz */
   /*TCCR2B = _BV(CS21); */ /* Arduino at 16MHz */
   TIMSK2 = _BV(TOIE2);
-  
+
   /* begin serial communication */
   UCSR0B = (1 << RXEN0) | (1 << TXEN0);
   UCSR0C = (1 << UCSZ00) | (1 << UCSZ01);
@@ -218,7 +220,7 @@ ISR(/*@ unused @*/ TIMER2_OVF_vect) {
   if (count == (unsigned int)0){
     bitPstn = (unsigned char)(bitPstn+(unsigned char)1);
     count = sampPerSymb;
-    
+
     /* if were transmitting the last stop bit make it 0.5x as long (1.5 stop bits) */
     if (bitPstn == (unsigned char)(bits-1)) count = count >> 1; /* div by 2 */
 
@@ -227,7 +229,7 @@ ISR(/*@ unused @*/ TIMER2_OVF_vect) {
 
     if(bitPstn > (unsigned char)(bits-1)) {
       bitPstn = (unsigned char)0;
-      
+
       setCbuff();
       /* if were at the end of the message, return to the begining */
       if (bytePstn >= (unsigned int)msgSize){
@@ -263,10 +265,10 @@ ISR(/*@ unused @*/ USART_RX_vect) {
   int i;
 
   if (tx == (unsigned char)1) return;
- 
+
   /* move buffer down, make way for new char */
   for(i = 0; i < (int)buflen-1; i++){
-    buffer[i] = buffer[i+1];      
+    buffer[i] = buffer[i+1];
   }
 
   buffer[(int)buflen-1] = (char)UDR0;
@@ -308,7 +310,7 @@ ISR(/*@ unused @*/ USART_RX_vect) {
       fsm_state = (char)2;
     }
 
-  } else if (fsm_state == (char)2) { 
+  } else if (fsm_state == (char)2) {
 
     /* Grab latitude */
 
@@ -376,7 +378,7 @@ ISR(/*@ unused @*/ USART_RX_vect) {
     }
 
   } else if (fsm_state == (char)8) {
-    
+
     /* clear lat and lon */
     lat_deg = (char)0;
     lon_deg = (char)0;
@@ -390,26 +392,41 @@ ISR(/*@ unused @*/ USART_RX_vect) {
     lon_f = (float)lon_deg + ((float)atof(&longitude[3]))/60;
 
     /* make negative if needed */
-    if (NS[0] == 'S') lat_f = -lat_f;     
-    if (EW[0] == 'W') lon_f = -lon_f;   
-    
+    if (NS[0] == 'S') lat_f = -lat_f;
+    if (EW[0] == 'W') lon_f = -lon_f;
+
     /* convert back to strings */
     dtostrf(lat_f, 8, 5, latitude);
-    dtostrf(lon_f, 8, 5, longitude);        
-    
+    dtostrf(lon_f, 8, 5, longitude);
+
+    /* construct a CRC hash */
+    char crcmsg[maxmsg];
+    memset(crcmsg, 0, maxmsg * sizeof(char));
+    strncpy(crcmsg, call,      (size_t)maxmsg);
+    strncat(crcmsg, delim,     (size_t)maxmsg);
+    strncat(crcmsg, delim,     (size_t)maxmsg);
+    strncat(crcmsg, latitude,  (size_t)maxmsg);
+    strncat(crcmsg, delim,     (size_t)maxmsg);
+    strncat(crcmsg, longitude, (size_t)maxmsg);
+    strncat(crcmsg, delim,     (size_t)maxmsg);
+    strncat(crcmsg, altitude,  (size_t)maxmsg);
+    strncat(crcmsg, delim,     (size_t)maxmsg);
+    strncat(crcmsg, utc_time,  (size_t)6);
+    strncat(crcmsg, delim,     (size_t)maxmsg);
+
+    // TODO: Is this the right size?
+    char crchex[sizeof(int) * sizeof(char)];
+    memset(crchex, 0, sizeof(int) * sizeof(char) * sizeof(char));
+    int crcmsgSize = (unsigned char)strlen(crcmsg);
+    snprintf(crchex, sizeof(crchex), "%x", crc16(crcmsg, crcmsgSize));
+
     /* assemble the message */
     strncpy(msg, nulls,     (size_t)maxmsg);
     strncat(msg, nl,        (size_t)maxmsg);
     strncat(msg, delim,     (size_t)maxmsg);
-    strncat(msg, call,      (size_t)maxmsg);
+    strncat(msg, crcmsg,    (size_t)maxmsg);
+    strncat(msg, crchex,    (size_t)maxmsg);
     strncat(msg, delim,     (size_t)maxmsg);
-    strncat(msg, latitude,  (size_t)maxmsg);
-    strncat(msg, delim,     (size_t)maxmsg);
-    strncat(msg, longitude, (size_t)maxmsg);
-    strncat(msg, delim,     (size_t)maxmsg);
-    strncat(msg, altitude,  (size_t)maxmsg);
-    strncat(msg, delim,     (size_t)maxmsg);
-    strncat(msg, utc_time,  (size_t)6);
     strncat(msg, nl,        (size_t)maxmsg);
     strncat(msg, nl,        (size_t)maxmsg);
     msgSize = (unsigned char)strlen(msg);
@@ -419,7 +436,7 @@ ISR(/*@ unused @*/ USART_RX_vect) {
     fsm_state = (char)0;
     tx = (unsigned char)1;
   }
-  
+
   if(buffer[(int)buflen-1] == ',') {
     lastcomma = (char)((int)buflen-1);
   } else {

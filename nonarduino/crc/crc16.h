@@ -1,1 +1,1 @@
-int crc16(const char *, int);
+int crc16(const char *, unsigned int);

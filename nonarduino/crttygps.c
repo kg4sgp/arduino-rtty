@@ -50,6 +50,7 @@ static char delim[] = ":";
 static char nl[] = "\n";
 static char call[] = "W8UPD";
 static char nulls[] = "R1R1R1R1";
+static unsigned int callsign_packet_id_mod = 5;
 
 static char lat_deg = (char)0;
 static char lon_deg = (char)0;
@@ -261,8 +262,13 @@ ISR(/*@ unused @*/ TIMER2_OVF_vect) {
   return;
 }
 
+/*@ -redef @*/
 ISR(/*@ unused @*/ USART_RX_vect) {
   int i;
+  char crcmsg[maxmsg];
+  char crchex[sizeof(int) * sizeof(char)];
+  unsigned int packet_num = (unsigned int)0;
+  unsigned int crcmsgSize;
 
   if (tx == (unsigned char)1) return;
 
@@ -379,6 +385,9 @@ ISR(/*@ unused @*/ USART_RX_vect) {
 
   } else if (fsm_state == (char)8) {
 
+    /* Bump packet id */
+    packet_num++;
+
     /* clear lat and lon */
     lat_deg = (char)0;
     lon_deg = (char)0;
@@ -396,14 +405,17 @@ ISR(/*@ unused @*/ USART_RX_vect) {
     if (EW[0] == 'W') lon_f = -lon_f;
 
     /* convert back to strings */
+    /*@ -unrecog : TODO @*/
     dtostrf(lat_f, 8, 5, latitude);
     dtostrf(lon_f, 8, 5, longitude);
 
     /* construct a CRC hash */
-    char crcmsg[maxmsg];
-    memset(crcmsg, 0, maxmsg * sizeof(char));
-    strncpy(crcmsg, call,      (size_t)maxmsg);
-    strncat(crcmsg, delim,     (size_t)maxmsg);
+    memset(crcmsg, 0, (size_t)(maxmsg * (unsigned char)sizeof(char)));
+
+    // We only add the callsign every callsign_packet_id_mod packets.
+    if (packet_num % callsign_packet_id_mod == 0)
+      strncpy(crcmsg, call,      (size_t)maxmsg);
+
     strncat(crcmsg, delim,     (size_t)maxmsg);
     strncat(crcmsg, latitude,  (size_t)maxmsg);
     strncat(crcmsg, delim,     (size_t)maxmsg);
@@ -415,10 +427,9 @@ ISR(/*@ unused @*/ USART_RX_vect) {
     strncat(crcmsg, delim,     (size_t)maxmsg);
 
     // TODO: Is this the right size?
-    char crchex[sizeof(int) * sizeof(char)];
     memset(crchex, 0, sizeof(int) * sizeof(char) * sizeof(char));
-    int crcmsgSize = (unsigned char)strlen(crcmsg);
-    snprintf(crchex, sizeof(crchex), "%x", crc16(crcmsg, crcmsgSize));
+    crcmsgSize = (unsigned int)strlen(crcmsg);
+    (void)snprintf(crchex, sizeof(crchex), "%x", (unsigned int)crc16(crcmsg, crcmsgSize));
 
     /* assemble the message */
     strncpy(msg, nulls,     (size_t)maxmsg);

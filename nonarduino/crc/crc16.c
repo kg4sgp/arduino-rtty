@@ -1,4 +1,4 @@
-int crc16(const char *msg, int size)
+int crc16(const char *msg, unsigned int size)
 {
   unsigned short poly = 0x1021;
   unsigned short crc = 0xffff;

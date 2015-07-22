@@ -46,7 +46,7 @@ void setup() {
   // setup pins for output
   //pinMode(3, OUTPUT);
   //pinMode(13, OUTPUT);
-  DDRD = _BV(7);
+  DDRB = _BV(7);
 
   // setup counter 2 for fast PWM output on pin 3 (arduino)
   //TCCR2A = _BV(COM2B1) | _BV(WGM21) | _BV(WGM20);
@@ -54,8 +54,9 @@ void setup() {
   //TIMSK2 = _BV(TOIE2);
   
   // teensy
-  TCCR2 = _BV(WGM21) | _BV(WGM20) | _BV(COM21) | _BV(CS21);
-  
+  TCCR0A = _BV(COM0A1) | _BV(WGM01) | _BV(WGM00);
+  TCCR0B = _BV(CS01);
+  TIMSK0 = _BV(TOIE0); /* maybe also: _BV(OCIE0A) */
 
   // begin serial communication
   Serial.begin(9600);
@@ -191,5 +192,5 @@ ISR(TIMER2_OVF_vect) {
   }
 
   // set PWM duty cycle
-  OCR2 = calcAmp();
+  OCR0A = calcAmp();
 }

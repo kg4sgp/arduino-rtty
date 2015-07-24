@@ -1,4 +1,4 @@
-// Arduino RTTY Modulator
+// Teensy 2.0 RTTY Modulator
 // Uses Fast PWM to produce ~8kHz 8bit audio
 
 #include "baudot.h"
@@ -44,15 +44,9 @@ void setup() {
   cli();
 
   // setup pins for output
-  //pinMode(3, OUTPUT);
-  //pinMode(13, OUTPUT);
+  // "B7" Pin on Teensy 2.0
   DDRB = _BV(7);
 
-  // setup counter 2 for fast PWM output on pin 3 (arduino)
-  //TCCR2A = _BV(COM2B1) | _BV(WGM21) | _BV(WGM20);
-  //TCCR2B = _BV(CS21);
-  //TIMSK2 = _BV(TOIE2);
-  
   // teensy
   TCCR0A = _BV(COM0A1) | _BV(WGM01) | _BV(WGM00);
   TCCR0B = _BV(CS01);

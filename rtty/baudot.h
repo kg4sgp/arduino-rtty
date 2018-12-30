@@ -29,8 +29,8 @@ unsigned char baudot_figures[] = {
 '?',
 ',',
 '.',
-13, // CR
-10, // LF
+0x0d, // CR
+0x0a, // LF
 };
 
 unsigned char baudot_letters[] = {
@@ -62,8 +62,8 @@ unsigned char baudot_letters[] = {
 'B', // ?
 'N', // ,
 'M', // .
-13, // CR
-10, // LF
+0x0d, // CR
+0x0a, // LF
 };
 
 

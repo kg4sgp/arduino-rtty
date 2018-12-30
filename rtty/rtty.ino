@@ -30,7 +30,7 @@ unsigned char charbuf = 0;
 unsigned char shiftToNum = 0;
 unsigned char justshifted = 0;
 
-char msg[] = "\n\nCQ CQ CQ DE KG4SGP KG4SGP KG4SGP KN\n\n";
+char msg[] = "\n\nCQ CQ CQ DE KG4SGP \n KG4SGP \n\r KG4SGP KN 73";
 
 // compute values for tones.
 unsigned int dmark = (unsigned int)((2*(long)tableSize*(long)fmark)/((long)sampleRate));
@@ -98,7 +98,7 @@ void setCbuff(){
       if(msg[bytePstn] == baudot_letters[i]) {
 
         // if coming from numbers, send shift to letters
-        if(shiftToNum == 1){
+        if(shiftToNum == 1 && msg[bytePstn] != ' ' && msg[bytePstn] != 0x0d && msg[bytePstn] != 0x0a){
           shiftToNum = 0;
           charbuf = ((baudot[31])<<2)+3;
           justshifted = 1;
@@ -108,9 +108,8 @@ void setCbuff(){
       }
 
       //look in numbers
-      if(msg[bytePstn] != ' ' && msg[bytePstn] != 10
-		&& msg[bytePstn] == baudot_figures[i]) {
-        if(shiftToNum == 0){
+      if(msg[bytePstn] == baudot_figures[i]) {
+        if(shiftToNum == 0 && msg[bytePstn] != ' ' && msg[bytePstn] != 0x0d && msg[bytePstn] != 0x0a){
           shiftToNum = 1;
           charbuf = ((baudot[30])<<2)+3;
           justshifted = 1;
@@ -120,7 +119,7 @@ void setCbuff(){
       }      
       
       // for printing the char to serial
-      sym = charbuf;
+      sym = bytePstn;
       pflag = 1;
     }
 }
